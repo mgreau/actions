@@ -97,6 +97,7 @@ runs:
     # Push the Git tag only if dry-run mode is not enabled
     - name: Push Git tag
       id: git-push
+      shell: bash
       if: ${{ inputs.dry_run == 'no' }}
       run: |
         set -x
