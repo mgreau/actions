@@ -45,8 +45,9 @@ runs:
       run: |
         set -x
 
-        bumped_version = ""
-        git_tag = ""
+        # Values to output
+        bumped_version=""
+        git_tag=""
 
         bump_level="${{ inputs.bump_level }}"
         forced_version = "${{ inputs.forced_version }}"
