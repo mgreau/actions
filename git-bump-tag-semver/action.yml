@@ -53,6 +53,7 @@ runs:
         bump_level="${{ inputs.bump_level }}"
         forced_version="${{ inputs.forced_version }}"
         git_tag_prefix="${{ inputs.git_tag_prefix }}"
+        dry_run="${{ inputs.dry_run }}"
 
         semvertool="$GITHUB_ACTION_PATH/semver.sh"
 
