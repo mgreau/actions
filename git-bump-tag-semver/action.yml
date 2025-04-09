@@ -1,0 +1,121 @@
+# Copyright 2025 Chainguard, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+name: 'GitHub Action to Bump and Push Git Tag (SemVer)'
+description: "A GitHub Action to automatically bump and push a Git tag according to the SemVer 2.0.0 specification."
+
+inputs:
+  bump_level:
+    description: "Specifies which part of the SemVer version to increment: major, minor, bugfix, pre-release, or build."
+    required: true
+    default: 'build'
+  git_tag_prefix:
+    description: "Git tag prefix (v by default)"
+    required: true
+    default: "v"
+  forced_version:
+    description: "Forced version tag to create instead of bumping from the latest version. 
+                  Must be SemVer2 compatible and not already. Do not specify the prefix."
+    required: false
+  dry_run:
+    required: true
+    description: "If true, no changes will be pushed 
+                  (useful for testing the workflow without creating a tag)."
+    default: false
+  token:
+    description: "GitHub token to push the tag"
+    required: true
+    default: ${{ github.token }}
+
+
+outputs:
+    bumped_version:
+      description: "Version bumped"
+      value: ${{ steps.semver-bump.bumped_version }}
+    git_tag:
+      description: "Git tag"
+      value: ${{ steps.semver-bump.git_tag }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Bump the version or used the forced version
+      id: semver-bump
+      shell: bash
+      run: |
+        set -x
+
+        bumped_version = ""
+        git_tag = ""
+
+        bump_level="${{ inputs.bump_level }}"
+        forced_version = "${{ inputs.forced_version }}"
+        git_tag_prefix="${{ inputs.git_tag_prefix }}"
+
+        semvertool="$GITHUB_ACTION_PATH/semver.sh"
+
+        # Forcing a specific version instead of bumping from the latest version
+        if [[ -z "$forced_version" ]]; then
+          git_tag="${git_tag_prefix}${forced_version}"
+          echo "::error ::Version '$forced_version' does not match the semver scheme 'X.Y.Z(+BUILD)'"
+        # Get latest tag and bump version level
+        else
+          # Get the latest Git tag
+          latest_tag=$(git describe --tags --abbrev=0)
+          if [[ -n "$latest_tag" ]]; then
+            echo "Latest Git tag: $latest_tag"
+          else
+            echo "No tags found in the repository. Use the forced_version option to initiate a tag."
+            exit 1
+          fi
+
+          # Remove the prefix if it exists
+          latest_version="${latest_tag#$git_tag_prefix}"
+          echo "Version extracted: $latest_version"
+
+          # Use YYYYMMDDHHMM format as build metadata.
+          # This approach helps for maintaining clarity, uniqueness, and chronological order.
+          if [[ "$bump_level" == "build" ]]; then
+              build_metadata=$(date +%Y%m%d%H%M)
+              bumped_version=$("$semvertool" bump build "$build_metadata" "$latest_version")
+          else
+              bumped_version=$("$semvertool" bump "$bump_level" "$latest_version")
+          fi
+
+        fi
+
+        # Check if the final bumped_version is compatible with the SemVer schema
+        version_status=$("$semvertool" validate "$bumped_version")
+        if [[ "$version_status" != "valid" ]]; then
+            echo "::error ::Version '$bumped_version' does not match the semver scheme 'X.Y.Z(-PRERELEASE)(+BUILD)'"
+            exit 1
+        fi
+       
+        echo "git_tag=${git_tag_prefix}${bumped_version}" >> $GITHUB_OUTPUT
+        echo "bumped_version=$bumped_version" >> $GITHUB_OUTPUT
+
+    # Push the Git tag only if dry-run mode is not enabled
+    - name: Push Git tag
+      id: git-push
+      if: ${{ inputs.dry_run == 'no' }}
+      run: |
+        set -x
+
+        git_tag="${{ steps.semver-bump.git_tag }}"
+        bumped_version="${{ steps.semver-bump.bumped_version }}"
+
+        # check if the Git tag already exists
+        git_tag_found=$(git show-ref --tags --verify -- "refs/tags/$git_tag")
+        if [ -n "$git_tag_found" ]; then
+          echo "A tag '$git_tag' already exists for the version '$bumped_version'"
+          echo "$git_tag_found"
+          exit 1
+        else
+          git push origin $git_tag
+          if [ $? -eq 0 ]; then
+            echo "Tag '$git_tag' pushed successfully."
+          else
+            echo "Failed to push tag '$git_tag'."
+            exit 1
+          fi
+        fi
