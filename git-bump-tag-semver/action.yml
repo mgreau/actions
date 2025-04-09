@@ -22,7 +22,7 @@ inputs:
     description: "If true, no changes will be pushed 
                   (useful for testing the workflow without creating a tag)."
     default: false
-  token:
+  github_token:
     description: "GitHub token to push the tag"
     required: true
     default: ${{ github.token }}
