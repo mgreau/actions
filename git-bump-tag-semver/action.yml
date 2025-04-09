@@ -55,12 +55,8 @@ runs:
 
         semvertool="$GITHUB_ACTION_PATH/semver.sh"
 
-        # Forcing a specific version instead of bumping from the latest version
-        if [[ -z "$forced_version" ]]; then
-          git_tag="${git_tag_prefix}${forced_version}"
-          echo "::error ::Version '$forced_version' does not match the semver scheme 'X.Y.Z(+BUILD)'"
         # Get latest tag and bump version level
-        else
+        if [[ -z "$forced_version" ]]; then
           # Get the latest Git tag
           latest_tag=$(git describe --tags --abbrev=0)
           if [[ -n "$latest_tag" ]]; then
@@ -82,7 +78,10 @@ runs:
           else
               bumped_version=$("$semvertool" bump "$bump_level" "$latest_version")
           fi
-
+        # Forcing a specific version instead of bumping from the latest version
+        else
+          bumped_version=$forced_version
+          echo "Version forced: '$forced_version'"
         fi
 
         # Check if the final bumped_version is compatible with the SemVer schema
