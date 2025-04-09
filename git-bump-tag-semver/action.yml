@@ -19,6 +19,7 @@ inputs:
     required: false
   dry_run:
     required: true
+    type: boolean
     description: "If true, no changes will be pushed 
                   (useful for testing the workflow without creating a tag)."
     default: false
