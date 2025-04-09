@@ -101,11 +101,11 @@ runs:
       id: git-push
       shell: bash
       if: ${{ inputs.dry_run == 'false' }}
-      with:
-        git_tag: ${{ steps.semver-bump.git_tag }}
-        bumped_version: ${{ steps.semver-bump.bumped_version }}
       run: |
         set -x
+
+        git_tag="$(echo '${{ steps.semver-bump.git_tag }}')"
+        bumped_version="$(echo '${{ steps.semver-bump.bumped_version }}')"
 
         # check if the Git tag already exists
         git_tag_found=$(git show-ref --tags --verify -- "refs/tags/$git_tag")
