@@ -32,10 +32,10 @@ inputs:
 outputs:
     bumped_version:
       description: "Version bumped"
-      value: ${{ steps.semver-bump.bumped_version }}
+      value: ${{ steps.semver-bump.outputs.bumped_version }}
     git_tag:
       description: "Git tag"
-      value: ${{ steps.semver-bump.git_tag }}
+      value: ${{ steps.semver-bump.outputs.git_tag }}
 
 runs:
   using: "composite"
@@ -80,46 +80,40 @@ runs:
           else
               bumped_version=$("$semvertool" bump "$bump_level" "$latest_version")
           fi
-        # Forcing a specific version instead of bumping from the latest version
+        # Force a specific version instead of bumping from the latest version
         else
           bumped_version=$forced_version
           echo "Version forced: '$forced_version'"
         fi
 
-        # Check if the final bumped_version is compatible with the SemVer schema
+        # check if the final bumped_version is compatible with the SemVer schema
         version_status=$("$semvertool" validate "$bumped_version")
         if [[ "$version_status" != "valid" ]]; then
             echo "::error ::Version '$bumped_version' does not match the semver scheme 'X.Y.Z(-PRERELEASE)(+BUILD)'"
             exit 1
         fi
+
+        # check dry-run mode
+        if [[ "$dry_run" == 'true' ]]; then
+          echo "dry-run mode is enabled. No git tags pushed."
+        else
+          # check if the Git tag already exists
+          git_tag_found=$(git show-ref --tags --verify -- "refs/tags/$git_tag")
+          if [ -n "$git_tag_found" ]; then
+            echo "A tag '$git_tag' already exists for the version '$bumped_version'."
+            echo "$git_tag_found"
+            exit 1
+          else
+            git push origin $git_tag
+            if [ $? -eq 0 ]; then
+              echo "Tag '$git_tag' pushed successfully."
+            else
+              echo "Failed to push tag '$git_tag'."
+              exit 1
+            fi
+          fi
+        fi
        
         echo "git_tag=${git_tag_prefix}${bumped_version}" >> $GITHUB_OUTPUT
         echo "bumped_version=$bumped_version" >> $GITHUB_OUTPUT
 
-    # Push the Git tag only if dry-run mode is not enabled
-    - name: Push Git tag
-      id: git-push
-      shell: bash
-      if: ${{ inputs.dry_run == 'false' }}
-      run: |
-        set -x
-
-        git_tag="$(echo '${{ steps.semver-bump.output.git_tag }}')"
-        bumped_version="$(echo '${{ steps.semver-bump.output.bumped_version }}')"
-
-
-        # check if the Git tag already exists
-        git_tag_found=$(git show-ref --tags --verify -- "refs/tags/$git_tag")
-        if [ -n "$git_tag_found" ]; then
-          echo "A tag '$git_tag' already exists for the version '$bumped_version'"
-          echo "$git_tag_found"
-          exit 1
-        else
-          git push origin $git_tag
-          if [ $? -eq 0 ]; then
-            echo "Tag '$git_tag' pushed successfully."
-          else
-            echo "Failed to push tag '$git_tag'."
-            exit 1
-          fi
-        fi
