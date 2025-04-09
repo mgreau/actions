@@ -98,7 +98,7 @@ runs:
     - name: Push Git tag
       id: git-push
       shell: bash
-      if: ${{ inputs.dry_run == 'no' }}
+      if: ${{ !inputs.dry_run }}
       run: |
         set -x
 
