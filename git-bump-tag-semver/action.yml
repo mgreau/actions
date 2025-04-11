@@ -101,11 +101,7 @@ runs:
         else
           # check if the Git tag already exists
           git_tag_found=$(git show-ref --tags --verify --quiet -- "refs/tags/$git_tag")
-          if [ -n "$git_tag_found" ]; then
-            echo "A tag '$git_tag' already exists for the version '$bumped_version'."
-            echo "$git_tag_found"
-            exit 1
-          else
+          if [[ -n "$git_tag_found" ]]; then
             git push origin $git_tag
             if [ $? -eq 0 ]; then
               echo "Tag '$git_tag' pushed successfully."
@@ -113,6 +109,10 @@ runs:
               echo "Failed to push tag '$git_tag'."
               exit 1
             fi
+          else
+            echo "A tag '$git_tag' already exists for the version '$bumped_version'."
+            echo "$git_tag_found"
+            exit 1
           fi
         fi
        
