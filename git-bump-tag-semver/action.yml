@@ -26,7 +26,6 @@ inputs:
   github_token:
     description: "GitHub token to push the tag"
     required: true
-    default: ${{ github.token }}
 
 
 outputs:
