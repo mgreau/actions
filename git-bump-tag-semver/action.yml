@@ -100,8 +100,7 @@ runs:
           echo "dry-run mode is enabled. No git tags pushed."
         else
           # check if the Git tag already exists
-          git_tag_found=$(git show-ref --tags --verify --quiet -- "refs/tags/$git_tag")
-          if [[ -n "$git_tag_found" ]]; then
+          if git show-ref --tags --verify --quiet -- "refs/tags/$git_tag"; then
             git push origin $git_tag
             if [ $? -eq 0 ]; then
               echo "Tag '$git_tag' pushed successfully."
@@ -111,7 +110,6 @@ runs:
             fi
           else
             echo "A tag '$git_tag' already exists for the version '$bumped_version'."
-            echo "$git_tag_found"
             exit 1
           fi
         fi
