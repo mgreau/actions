@@ -105,6 +105,7 @@ runs:
             echo "A tag '$git_tag' already exists for the version '$bumped_version'."
             exit 1
           else
+            git tag $git_tag
             git push origin $git_tag
             if [ $? -eq 0 ]; then
               echo "Tag '$git_tag' pushed successfully."
