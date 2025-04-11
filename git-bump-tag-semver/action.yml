@@ -6,7 +6,7 @@ description: "A GitHub Action to automatically bump and push a Git tag according
 
 inputs:
   bump_level:
-    description: "Specifies which part of the SemVer version to increment: major, minor, bugfix, pre-release, or build."
+    description: "Specifies which part of the SemVer version to increment: major, minor, bugfix, prerelease, or build."
     required: true
     default: 'build'
   git_tag_prefix:
